@@ -88,7 +88,7 @@ test("native search offers distinct indexed videos without leaking raw IDs",asyn
  const h=harness();
  const res=await h.send("search",{query:"lecture"},1);
  assert.equal(res.ok,true);
- assert.deepEqual(res.data.results.map(x=>x.title),["Lecture Alpha","Lecture Beta"]);
+ assert.equal(JSON.stringify(res.data.results.map(x=>x.title)),JSON.stringify(["Lecture Alpha","Lecture Beta"]));
  assert.equal(JSON.stringify(res.data).includes("AAAAAAAAAAA"),false);
  assert.deepEqual(h.calls.filter(x=>x[0]==="fetch").map(x=>x[2]),["omit"]);
  const denied=await h.send("javascript",{code:"alert(1)"},2);
