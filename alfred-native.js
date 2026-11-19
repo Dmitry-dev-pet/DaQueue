@@ -7,7 +7,7 @@
   const HOST = "org.alfred.youtube_daqueue";
   const RETRY = "alfred-youtube-daqueue-native-reconnect";
   const ID = /^[A-Za-z0-9_-]{11}$/;
-  const ALLOWED = new Set(["search","queue","play","queue_next","queue_add","queue_move","queue_remove","queue_clear"]);
+  const ALLOWED = new Set(["search","queue","status","play","queue_next","queue_add","queue_move","queue_remove","queue_clear"]);
   const MAX_REPLY = 32768;
   const SEARCH_TTL = 120000;
   const MAX_QUEUE = 250;
@@ -15,7 +15,7 @@
   const clean = (x,n=160) => String(x??"").replace(/[\u0000-\u001f\u007f]/g," ").trim().slice(0,n);
   const plain = x => x && typeof x==="object" && !Array.isArray(x);
   const fail = code => {throw new Error(code)};
-  let port=null,searchCache=null;
+  let port=null,searchCache=null,lastPlayRequested=null;
   let backend=null;
 
   function textRuns(o) {
@@ -101,6 +101,7 @@
     if(!ALLOWED.has(command)||!plain(args))return false;
     const keys=Object.keys(args);
     const exact=names=>keys.length===names.length && names.every(x=>Object.hasOwn(args,x));
+    if(command==="status")return exact([]);
     if(command==="queue")return (exact([]) || exact(["offset","limit"])) &&
       (keys.length===0 || (Number.isInteger(args.offset)&&args.offset>=0&&args.offset<MAX_QUEUE&&
         Number.isInteger(args.limit)&&args.limit>=1&&args.limit<=50));
@@ -151,6 +152,21 @@
         index,title:v.title,channel:v.channel
       })),source:"youtube_public_search_page",untrusted_catalog_results:true};
     }
+    if(command==="status"){
+      const tab=await youtubeTab();
+      if(!tab)return {available:false,reason:"NO_YOUTUBE_TAB"};
+      let now;
+      try{now=await chrome.tabs.sendMessage(tab.id,{type:"getNowPlaying"})}
+      catch{return {available:false,reason:"CONTENT_SCRIPT_UNAVAILABLE"}}
+      if(!plain(now)||!ID.test(now.id??"")||typeof now.paused!=="boolean")
+        return {available:false,reason:"PLAYER_NOT_READY"};
+      const matched=!!lastPlayRequested&&Date.now()-lastPlayRequested.at<SEARCH_TTL&&
+        now.id===lastPlayRequested.id;
+      return {available:true,title:clean(now.title),channel:clean(now.channel),
+        playback:now.paused?"paused":"playing",
+        matched_last_requested_video:matched,
+        verified_last_requested_playback:matched&&!now.paused};
+    }
     if(command==="queue"){
       const queue=await backend.getQueue(false);
       const offset=args.offset??0,limit=args.limit??20;
@@ -163,6 +179,7 @@
       const url="https://www.youtube.com/watch?v="+item.videoId;
       if(tab)await chrome.tabs.update(tab.id,{url,active:true});
       else await chrome.tabs.create({url,active:true});
+      lastPlayRequested={id:item.videoId,at:Date.now()};
       return {requested:true,action:"play",title:item.title,channel:item.channel,
         verified_playback_change:false};
     }
