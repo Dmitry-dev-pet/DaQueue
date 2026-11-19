@@ -24,10 +24,11 @@ The Alfred additions are narrowly scoped:
 | Operation | How it works |
 | --- | --- |
 | Search | Read public YouTube search page (no cookies) and return up to 10 distinct video title/channel choices |
+| Read player status | Query the actual YouTube watch-page content script for playing/paused and check the last requested video by ID internally without exposing raw IDs |
 | Play selected search result | Navigate **one** normal YouTube tab, or open a new tab; fail when multiple eligible YouTube tabs exist |
 | Add Next | Use DaQueue's existing queued-video insertion with `next=true` |
 | Add to End | Use DaQueue's existing insertion with `next=false` |
-| List queue | Read existing DaQueue queue; return up to 250 entries |
+| List queue | Read the existing DaQueue queue in pages of at most 50 entries; no queue mutation |
 | Move / remove | Compare the expected row title before changing by index |
 | Clear queue | Only with explicit `CLEAR_QUEUE` confirmation |
 
@@ -45,12 +46,13 @@ choose the actual result. Searches do not use the signed-in Chrome cookies.
 
 **Playback limitation:** Clicking Play requests navigation to the selected
 video; YouTube/Chrome may subsequently block autoplay. This initial
-adapter does not claim to have verified actual playback unless a separate
-readback test is implemented. Queue additions are verified against DaQueue
+adapter exposes a separate read-only `status` operation that checks the
+active watch-page video ID against the last requested video and reports
+whether it actually plays. Navigation alone is not considered verified. Queue additions are verified against DaQueue
 storage, not against YouTube's built-in miniplayer queue. Do not combine
 those two queues.
 
-## Local Mac installation — not deployed yet
+## Local Mac installation — read-only smoke verified
 
 1. Create a clone of the **fork feature branch**, not upstream `main`.
 2. Check `node --test tests/alfred-native.test.mjs` and
@@ -65,9 +67,11 @@ those two queues.
    Play and Add Next. Do not modify the Music Companion extension or its
    existing Secure MCP Tunnel.
 
-**Status:** Source-only until tests and physical owner Mac checks succeed.
-Neither a video MCP, local Native Messaging host, nor remote ChatGPT video
-plugin is proven connected just by GitHub CI.
+**Status:** The owner physically verified DaQueue local Native Messaging,
+queue readback (empty queue), and a live public YouTube search yielding 9
+results on Mac on 19 Nov 2026. A live Play and Add Next acceptance is
+**still pending**; the separate remote ChatGPT video tunnel/plugin is
+not connected. See the independent private infra-mcp-gateway PR #57.
 
 Retain `LICENSE` and upstream author's copyright notices in any
 redistribution. This is not an official DaQueue release.
