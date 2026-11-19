@@ -101,7 +101,9 @@
     if(!ALLOWED.has(command)||!plain(args))return false;
     const keys=Object.keys(args);
     const exact=names=>keys.length===names.length && names.every(x=>Object.hasOwn(args,x));
-    if(command==="queue")return exact([]);
+    if(command==="queue")return (exact([]) || exact(["offset","limit"])) &&
+      (keys.length===0 || (Number.isInteger(args.offset)&&args.offset>=0&&args.offset<MAX_QUEUE&&
+        Number.isInteger(args.limit)&&args.limit>=1&&args.limit<=50));
     if(command==="search")return exact(["query"]) && typeof args.query==="string" &&
       args.query.length<=120 && !!args.query.trim() && !/[\u0000-\u001f\u007f]/.test(args.query);
     if(["play","queue_next","queue_add"].includes(command))
@@ -121,10 +123,9 @@
   function result(id,payload){
     return {type:"alfred.youtube.response",id,...payload};
   }
-  function sanitizedQueue(q) {
-    return q.slice(0,MAX_QUEUE).map((item,index)=>({
-      index,title:clean(item.title),channel:clean(item.channel),
-      video_id:ID.test(item.id??"")?item.id:null
+  function sanitizedQueue(q,offset=0,limit=20) {
+    return q.slice(offset,offset+limit).map((item,i)=>({
+      index:offset+i,title:clean(item.title),channel:clean(item.channel)
     }));
   }
   function searchPick(args){
@@ -150,7 +151,12 @@
         index,title:v.title,channel:v.channel
       })),source:"youtube_public_search_page",untrusted_catalog_results:true};
     }
-    if(command==="queue")return {items:sanitizedQueue(await backend.getQueue(false))};
+    if(command==="queue"){
+      const queue=await backend.getQueue(false);
+      const offset=args.offset??0,limit=args.limit??20;
+      return {items:sanitizedQueue(queue,offset,limit),total:queue.length,
+        offset,limit,has_more:offset+limit<queue.length};
+    }
     if(command==="play"){
       const item=searchPick(args);
       const tab=await youtubeTab();
@@ -187,7 +193,9 @@
       if(moved==="INDEX_UNAVAILABLE"||moved==="STALE_QUEUE")fail(moved);
       const after=await backend.getQueue(false);
       return {requested:true,action:"queue_move",status:moved,
-        items:sanitizedQueue(after)};
+        from:args.from,to:args.to,
+        verified_queue_change:moved==="MOVED"&&after[args.to]?.title===args.expected_title,
+        items:sanitizedQueue(after,Math.max(0,args.to-2),5)};
     }
     if(command==="queue_remove"){
       const removed=await backend.mutate(false,q=>{
@@ -198,7 +206,7 @@
       });
       if(removed!=="REMOVED")fail(removed);
       return {requested:true,action:"queue_remove",status:removed,
-        items:sanitizedQueue(await backend.getQueue(false))};
+        items:sanitizedQueue(await backend.getQueue(false),Math.max(0,args.index-2),5)};
     }
     if(command==="queue_clear"){
       const previous=(await backend.getQueue(false)).length;
