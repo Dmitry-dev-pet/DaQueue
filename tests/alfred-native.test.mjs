@@ -33,7 +33,12 @@ function harness({html=searchPage(
    alarms:{create(){},onAlarm:{addListener(){}}},
    tabs:{async query(){return tabs},
      async update(id,opts){calls.push(["update",id,opts]);return {id,...opts}},
-     async create(opts){calls.push(["create",opts]);return {id:100,...opts}}}
+     async create(opts){calls.push(["create",opts]);return {id:100,...opts}},
+     async sendMessage(id,msg){
+       calls.push(["message",id,msg.type]);
+       if(msg.type!=="getNowPlaying")throw Error("Unknown content script command");
+       return {id:"AAAAAAAAAAA",title:"Lecture Alpha",channel:"Science Channel",paused:false};
+     }}
  };
  const backend={
    async getQueue(){return queue.map(x=>({...x}))},
@@ -133,6 +138,11 @@ test("YouTube play opens a precise watch URL and fails closed with two eligible 
  const p=await h.send("play",{search_id:s.data.search_id,index:0},2);
  assert.equal(p.ok,true);
  assert.equal(p.data.verified_playback_change,false);
+ const status=await h.send("status",{},22);
+ assert.equal(status.ok,true);
+ assert.equal(status.data.playback,"playing");
+ assert.equal(status.data.verified_last_requested_playback,true);
+ assert.equal(JSON.stringify(status).includes("AAAAAAAAAAA"),false);
  const nav=h.calls.filter(x=>x[0]==="update");
  assert.equal(nav.length,1);
  assert.equal(nav[0][2].url,"https://www.youtube.com/watch?v=AAAAAAAAAAA");
@@ -150,4 +160,12 @@ test("search rejects missing/changed results rather than fabricating a match",as
  const r=await h.send("search",{query:"lecture"},2);
  assert.equal(r.ok,false);
  assert.equal(r.error,"SEARCH_UNAVAILABLE");
+});
+
+test("status is read-only and declines missing YouTube watch tabs",async()=>{
+ const h=harness({tabs:[]});
+ const s=await h.send("status",{},1);
+ assert.equal(s.ok,true);
+ assert.equal(s.data.available,false);
+ assert.equal(h.calls.some(x=>x[0]==="create"||x[0]==="update"),false);
 });
