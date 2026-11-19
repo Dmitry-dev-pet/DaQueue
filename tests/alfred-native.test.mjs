@@ -79,6 +79,7 @@ test("fork is MIT, Chrome MV3, isolated from Music Companion",()=>{
  assert.equal(Object.hasOwn(mf.background,"scripts"),false);
  assert.equal(mf.permissions.includes("nativeMessaging"),true);
  assert.equal(mf.permissions.includes("alarms"),true);
+ assert.equal(mf.permissions.includes("tabs"),false);
  assert.ok(mf.host_permissions.includes("*://www.youtube.com/*"));
  assert.equal(mf.host_permissions.some(x=>x.includes("music.youtube.com")),false);
  assert.ok(background.includes("self.installAlfredDaQueueNative({getQueue,addVideo,mutate});"));
