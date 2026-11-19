@@ -1,0 +1,31 @@
+name: Alfred YouTube Queue bridge checks
+
+on:
+  pull_request:
+    paths:
+      - "background.js"
+      - "manifest.json"
+      - "alfred-native.js"
+      - "tests/**"
+      - ".github/workflows/alfred-youtube-bridge.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Source syntax
+        run: |
+          node --check background.js
+          node --check alfred-native.js
+          node --check tests/alfred-native.test.mjs
+      - name: Check search, queue and Native Messaging safety
+        run: node --test tests/alfred-native.test.mjs

@@ -304,3 +304,7 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   const item = await handlers.next(null, tab.incognito);
   if (item) chrome.tabs.create({ windowId: tab.windowId, url: `${YT_ORIGIN}/watch?v=${item.id}` });
 });
+
+// Independent Alfred YouTube queue adapter. MIT, additive; DaQueue remains owner.
+importScripts('alfred-native.js');
+self.installAlfredDaQueueNative({getQueue,addVideo,mutate});
