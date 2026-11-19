@@ -1,13 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "DaQueue",
+  "name": "Alfred YouTube Queue (DaQueue)",
   "version": "2.0.1",
-  "description": "Persistent, reorderable video queue for YouTube, plus sponsor and segment skipping.",
+  "description": "MIT DaQueue fork with independent Alfred search, playlist queue and Native Messaging adapter",
   "minimum_chrome_version": "111",
   "homepage_url": "https://github.com/abhiramkunnath/DaQueue",
   "permissions": [
     "storage",
-    "contextMenus"
+    "contextMenus",
+    "nativeMessaging",
+    "alarms",
+    "tabs"
   ],
   "host_permissions": [
     "*://www.youtube.com/*",
@@ -47,7 +50,7 @@
     }
   ],
   "action": {
-    "default_title": "DaQueue",
+    "default_title": "Alfred YouTube Queue",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
