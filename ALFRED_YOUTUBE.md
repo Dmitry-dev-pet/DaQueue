@@ -7,8 +7,9 @@ behaviour, and local persistent storage remain the source of truth.
 
 The Alfred additions are narrowly scoped:
 
-- `manifest.json`: a distinctive name and only three additional Chrome
-  permissions (`nativeMessaging`, `alarms`, `tabs`). The extension is
+- `manifest.json`: a distinctive name and only two additional Chrome
+  permissions (`nativeMessaging`, `alarms`). The existing YouTube host
+  permission is sufficient for scoped YouTube tab selection. The extension is
   restricted to YouTube, its own thumbnails, and existing SponsorBlock
   origins; **no Google account OAuth or YouTube Data API key is required**.
 - `alfred-native.js`: an isolated, fixed-command native controller that calls
