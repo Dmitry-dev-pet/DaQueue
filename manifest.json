@@ -9,8 +9,7 @@
     "storage",
     "contextMenus",
     "nativeMessaging",
-    "alarms",
-    "tabs"
+    "alarms"
   ],
   "host_permissions": [
     "*://www.youtube.com/*",
